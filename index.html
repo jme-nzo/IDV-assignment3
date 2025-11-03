@@ -5,7 +5,14 @@
   </head>
 
   <body>
-      
+      <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 24px; }
+    .axis path, .axis line { stroke: #333; shape-rendering: crispEdges; }
+    .grid line { stroke: #ddd; stroke-opacity: 0.8; }
+    .point { fill: #1f77b4; }
+    .label { font-size: 12px; fill: #111; user-select: none; }
+    .square { fill: rgba(231, 76, 60, 0.12); stroke: #e74c3c; stroke-width: 2; }
+  </style>
         <script>
   // --- Basic dimensions & margins
   const margin = { top: 20, right: 30, bottom: 40, left: 50 };
