@@ -1,71 +1,134 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Jaime's Assignment 3 Submission :P</title>
-  </head>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>D3 Square with Labeled Points (HTML only)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- D3 (v7) -->
+  <script src="https://unpkg.com/d3@7"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #chart { width: 100vw; height: 100vh; }
+    .axis path, .axis line { stroke: #333; shape-rendering: crispEdges; }
+    .grid line { stroke: #ddd; }
+    .grid path { stroke: none; }
+    .label { font-size: 12px; fill: #111; user-select: none; }
+    .point { fill: #0d6efd; stroke: #083b82; stroke-width: 1px; }
+    .square { fill: rgba(255, 165, 0, 0.15); stroke: #ff9800; stroke-width: 2px; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
 
-  <body> 
-    <script src="//d3js.org/d3.v3.min.js"></script>
-    <script> d3.select("body").append("p").text("Hello World!"); </script>
-  <div id="myPlot"></div>
+  <script>
+    // --- Config ---
+    const width = 620, height = 620, margin = { top: 40, right: 40, bottom: 40, left: 40 };
+    const xDomain = [0, 500];
+    const yDomain = [0, 500];
 
-  <script defer>
-    const xSize = 500;
-    const ySize = 500;
-    const margin = 40;
-    const xMax = xSize - margin * 2;
-    const yMax = ySize - margin * 2;
-    
-      // Set Dimensions
-const xSize = 500;
-const ySize = 500;
-const margin = 40;
-const xMax = xSize - margin*2;
-const yMax = ySize - margin*2;
+    // Square corners in *data* coordinates (edit these to change the square)
+    const square = { x: 100, y: 100, size: 300 }; // from (100,100) to (400,400)
 
-// Create Random Points
-const numPoints = 100;
-const data = [];
-for (let i = 0; i < numPoints; i++) {
-  data.push([Math.random() * xMax, Math.random() * yMax]);
-}
+    // Points in *data* coordinates with labels (edit/add as you like)
+    const points = [
+      { x: 120, y: 380, label: "A(120,380)" },
+      { x: 260, y: 260, label: "B(260,260)" },
+      { x: 410, y: 140, label: "C(410,140)" },
+      { x: 400, y: 400, label: "D(400,400)" }
+    ];
 
-// Append SVG Object to the Page
-const svg = d3.select("#myPlot")
-  .append("svg")
-  .append("g")
-  .attr("transform","translate(" + margin + "," + margin + ")");
+    // --- Setup SVG ---
+    const innerW = width - margin.left - margin.right;
+    const innerH = height - margin.top - margin.bottom;
 
-// X Axis
-const x = d3.scaleLinear()
-  .domain([0, 500])
-  .range([0, xMax]);
+    const svg = d3.select("#chart")
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height);
 
-svg.append("g")
-  .attr("transform", "translate(0," + yMax + ")")
-  .call(d3.axisBottom(x));
+    const g = svg.append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
 
-// Y Axis
-const y = d3.scaleLinear()
-  .domain([0, 500])
-  .range([ yMax, 0]);
+    // --- Scales ---
+    const x = d3.scaleLinear().domain(xDomain).range([0, innerW]);
+    const y = d3.scaleLinear().domain(yDomain).range([innerH, 0]); // y up
 
-svg.append("g")
-  .call(d3.axisLeft(y));
+    // --- Gridlines ---
+    function makeXGrid() { return d3.axisBottom(x).ticks(10); }
+    function makeYGrid() { return d3.axisLeft(y).ticks(10); }
 
-// Dots
-svg.append('g')
-  .selectAll("dot")
-  .data(data).enter()
-  .append("circle")
-  .attr("cx", function (d) { return d[0] } )
-  .attr("cy", function (d) { return d[1] } )
-  .attr("r", 3)
-  .style("fill", "Red");
-    </script>
-  </body>
+    g.append("g")
+      .attr("class", "grid")
+      .attr("transform", `translate(0,${innerH})`)
+      .call(makeXGrid().tickSize(-innerH).tickFormat(""));
 
-  <footer>
-    
-  </footer>
+    g.append("g")
+      .attr("class", "grid")
+      .call(makeYGrid().tickSize(-innerW).tickFormat(""));
+
+    // --- Axes ---
+    g.append("g")
+      .attr("class", "axis")
+      .attr("transform", `translate(0,${innerH})`)
+      .call(d3.axisBottom(x).ticks(10));
+
+    g.append("g")
+      .attr("class", "axis")
+      .call(d3.axisLeft(y).ticks(10));
+
+    // Axis labels
+    g.append("text")
+      .attr("x", innerW / 2)
+      .attr("y", innerH + 32)
+      .attr("text-anchor", "middle")
+      .attr("class", "label")
+      .text("X");
+
+    g.append("text")
+      .attr("transform", `translate(-28, ${innerH/2}) rotate(-90)`)
+      .attr("text-anchor", "middle")
+      .attr("class", "label")
+      .text("Y");
+
+    // --- Square ---
+    g.append("rect")
+      .attr("class", "square")
+      .attr("x", x(square.x))
+      .attr("y", y(square.y + square.size)) // top-left in SVG coords
+      .attr("width", x(square.x + square.size) - x(square.x))
+      .attr("height", y(square.y) - y(square.y + square.size));
+
+    // --- Points + Labels ---
+    const pt = g.selectAll(".point")
+      .data(points)
+      .enter()
+      .append("g")
+      .attr("transform", d => `translate(${x(d.x)},${y(d.y)})`);
+
+    pt.append("circle")
+      .attr("class", "point")
+      .attr("r", 4.5);
+
+    pt.append("text")
+      .attr("class", "label")
+      .attr("dx", 8)
+      .attr("dy", -8)
+      .text(d => d.label);
+
+    // Optional: crosshair lines from each point to axes (guides)
+    pt.each(function(d){
+      const group = d3.select(this);
+      // to X-axis
+      g.append("line")
+        .attr("x1", x(d.x)).attr("y1", y(d.y))
+        .attr("x2", x(d.x)).attr("y2", y(0))
+        .attr("stroke", "#bbb").attr("stroke-dasharray", "3,3");
+      // to Y-axis
+      g.append("line")
+        .attr("x1", x(d.x)).attr("y1", y(d.y))
+        .attr("x2", x(0)).attr("y2", y(d.y))
+        .attr("stroke", "#bbb").attr("stroke-dasharray", "3,3");
+    });
+  </script>
+</body>
 </html>
