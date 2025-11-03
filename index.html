@@ -1,13 +1,116 @@
 <!DOCTYPE html>
 <html>
   <head>
-  
+    <title>Jaime's Assignment 3 Submission :P</title>
   </head>
 
   <body>
-      <style>
-        
-      </style>
+      
+        <script>
+  // --- Basic dimensions & margins
+  const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+  const width  = 640 - margin.left - margin.right;
+  const height = 420 - margin.top - margin.bottom;
+
+  // --- Create SVG
+  const svg = d3.select("#chart")
+    .append("svg")
+      .attr("width",  width  + margin.left + margin.right)
+      .attr("height", height + margin.top  + margin.bottom)
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // --- Scales (change domains to match your data range)
+  const x = d3.scaleLinear().domain([0, 10]).range([0, width]);
+  const y = d3.scaleLinear().domain([0, 10]).range([height, 0]);
+
+  // --- Gridlines
+  function makeXGrid() { return d3.axisBottom(x).ticks(10); }
+  function makeYGrid() { return d3.axisLeft(y).ticks(10); }
+
+  svg.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(0,${height})`)
+    .call(makeXGrid()
+      .tickSize(-height)
+      .tickFormat(""));
+
+  svg.append("g")
+    .attr("class", "grid")
+    .call(makeYGrid()
+      .tickSize(-width)
+      .tickFormat(""));
+
+  // --- Axes
+  svg.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x).ticks(10));
+
+  svg.append("g")
+    .attr("class", "axis")
+    .call(d3.axisLeft(y).ticks(10));
+
+  // Axis labels (optional)
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", height + 32)
+    .attr("text-anchor", "middle")
+    .text("X");
+
+  svg.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", -36)
+    .attr("text-anchor", "middle")
+    .text("Y");
+
+  // --- Square coordinates (in data space)
+  // Define the bottom-left corner (x0, y0) and side length s
+  const x0 = 2, y0 = 2, s = 4; // This creates a square from (2,2) to (6,6)
+
+  // Draw square as a rect
+  svg.append("rect")
+    .attr("class", "square")
+    .attr("x", x(x0))
+    .attr("y", y(y0 + s)) // SVG y is from top; convert data (top-left corner)
+    .attr("width",  x(x0 + s) - x(x0))
+    .attr("height", y(y0) - y(y0 + s));
+
+  // --- Points to plot (x, y, label)
+  const points = [
+    { x: 1, y: 1, label: "A (1,1)" },
+    { x: 3, y: 5, label: "B (3,5)" },
+    { x: 6, y: 3, label: "C (6,3)" },
+    { x: 8, y: 7, label: "D (8,7)" }
+  ];
+
+  // Draw points
+  svg.selectAll(".point")
+    .data(points)
+    .enter()
+    .append("circle")
+      .attr("class", "point")
+      .attr("r", 4)
+      .attr("cx", d => x(d.x))
+      .attr("cy", d => y(d.y));
+
+  // Labels next to points
+  svg.selectAll(".label")
+    .data(points)
+    .enter()
+    .append("text")
+      .attr("class", "label")
+      .attr("x", d => x(d.x) + 6)   // small offset to the right
+      .attr("y", d => y(d.y) - 6)   // small offset upward
+      .text(d => d.label);
+
+  // --- Optional: tick formatting to show integers only
+  // Uncomment if you want ticks at whole numbers:
+  // svg.select(".axis:nth-of-type(1)").call(d3.axisBottom(x).ticks(10).tickFormat(d3.format("d")));
+  // svg.select(".axis:nth-of-type(2)").call(d3.axisLeft(y).ticks(10).tickFormat(d3.format("d")));
+</script>
+      
   </body>
 
   <footer>
