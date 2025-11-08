@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>D3 — Replica sketch</title>
+  <title>D3 — Replica sketch (with horizontal edges)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://unpkg.com/d3@7"></script>
   <style>
@@ -58,17 +58,17 @@ for (let r = 1; r < rows; r++) {
       .attr("x2", iw).attr("y2", r*rh);
 }
 
-/* simple helpers to go from grid coords to pixels (0..cols, 0..rows from left/bottom) */
+/* helpers: grid coords (0..cols, 0..rows from left/bottom) → pixels */
 const X = c => c * cw;
 const Y = r => ih - r * rh;
 
-/* --- key points approximated from your image --- */
-const p_beta2  = {x: 2.8, y: 1.0};  // e^β_2 near bottom-left
-const p_beta1  = {x: 6.2, y: 1.0};  // e^β_1 near bottom-mid-right
-const p_alpha2 = {x: 4.9, y: 3.9};  // e^α_2 upper middle
-const p_alpha1 = {x: 8.0, y: 3.9};  // e^α_1 upper right
+/* --- key points (approx from your image) --- */
+const p_beta2  = {x: 2.8, y: 1.0};  // e^β_2
+const p_beta1  = {x: 6.2, y: 1.0};  // e^β_1
+const p_alpha2 = {x: 4.9, y: 3.9};  // e^α_2
+const p_alpha1 = {x: 8.0, y: 3.9};  // e^α_1
 
-/* markers for arrowheads */
+/* markers for arrowheads (used on dashed lines + tiny cues) */
 svg.append("defs")
   .append("marker")
     .attr("id","arrow")
@@ -80,7 +80,7 @@ svg.append("defs")
     .attr("d","M 0 0 L 12 6 L 0 12 z")
     .attr("fill","#3e5964");
 
-/* --- solid vectors --- */
+/* --- solid vectors (diagonals) --- */
 g.append("line")
   .attr("class","vec")
   .attr("x1", X(p_beta2.x)).attr("y1", Y(p_beta2.y))
@@ -91,7 +91,18 @@ g.append("line")
   .attr("x1", X(p_beta1.x)).attr("y1", Y(p_beta1.y))
   .attr("x2", X(p_alpha1.x)).attr("y2", Y(p_alpha1.y));
 
-/* --- dashed vectors (with arrowheads pointing back toward β points, like your photo) --- */
+/* --- NEW: horizontal solid connections --- */
+g.append("line") // β2 ↔ β1
+  .attr("class","vec")
+  .attr("x1", X(p_beta2.x)).attr("y1", Y(p_beta2.y))
+  .attr("x2", X(p_beta1.x)).attr("y2", Y(p_beta1.y));
+
+g.append("line") // α2 ↔ α1
+  .attr("class","vec")
+  .attr("x1", X(p_alpha2.x)).attr("y1", Y(p_alpha2.y))
+  .attr("x2", X(p_alpha1.x)).attr("y2", Y(p_alpha1.y));
+
+/* --- dashed vectors with arrowheads --- */
 g.append("line")
   .attr("class","vec-dashed")
   .attr("x1", X(p_alpha1.x)).attr("y1", Y(p_alpha1.y))
@@ -104,13 +115,12 @@ g.append("line")
   .attr("x2", X(p_beta1.x)).attr("y2", Y(p_beta1.y))
   .attr("marker-end","url(#arrow)");
 
-/* small dashed tick at the crossing of dashed lines */
+/* midpoint tick at dashed intersection */
 function lineIntersection(a1,a2,b1,b2){
   const x1 = X(a1.x), y1 = Y(a1.y),
         x2 = X(a2.x), y2 = Y(a2.y),
         x3 = X(b1.x), y3 = Y(b1.y),
         x4 = X(b2.x), y4 = Y(b2.y);
-
   const den = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
   const px = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) / den;
   const py = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) / den;
@@ -122,7 +132,7 @@ g.append("line")
   .attr("x1", mid.x - 22).attr("y1", mid.y)
   .attr("x2", mid.x + 22).attr("y2", mid.y);
 
-/* --- tiny arrow cues at β points (left/down facing as in photo) --- */
+/* tiny arrow cues at β points (as in photo) */
 const tiny = 16;
 g.append("path")
   .attr("class","vec")
@@ -133,7 +143,7 @@ g.append("path")
   .attr("d", `M ${X(p_beta1.x)} ${Y(p_beta1.y)} l 0 ${tiny}`)
   .attr("marker-end","url(#arrow)");
 
-/* --- labels e^α_1, e^α_2, e^β_1, e^β_2 --- */
+/* labels e^α_1, e^α_2, e^β_1, e^β_2 */
 function addMathLabel(p, superscript, subscript, dx, dy){
   const t = g.append("text")
     .attr("class","math")
