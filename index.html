@@ -1,120 +1,1230 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>D3 Path Visualization</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <title>D3 Stack (Scroll)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { margin: 0; background: #f6f6f6; }
-    #chart { width: 100vw; height: 100vh; }
+    html, body { margin: 0; padding: 0; background:#111; }
+    iframe {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      border: 0;
+      background: #fff;
+    }
   </style>
 </head>
 <body>
-<div id="chart"></div>
 
-<script>
-const width = 900, height = 600;
+  <!-- (1) Interactive Quadrilateral -->
+  <template id="doc1"><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quadrilateral - D3.js</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>Notes:</p>
+        <p>1. I first pasted a screenshot of the assignment onto ChatGPT. And although it was not the first initial way I wanted it to look, I tweaked the prompts to contain more of the grid, the label, to plot the e^B2 to connect to e^B1 etc.</p>
+        <p>2. I also used the prompt "I want there to be an interaction where you can adjust and restretch the corners of the shape. so 4 corners to be adjustable."</p>
+        <p>3. Prompts like " once the user has resized the shape. are you able to do an animation to blink the complete shape 3 times after 2 seconds of setting the new shape?"</p>
+        <svg id="canvas"></svg>
+    </div>
 
-// Create SVG
-const svg = d3.select("#chart")
-  .append("svg")
-  .attr("width", width)
-  .attr("height", height);
+    <script>
+        const width = 1000;
+        const height = 400;
+        const gridSize = 100;
 
-// --- Background grid ---
-const gridSize = 40;
-for (let x = 0; x < width; x += gridSize) {
-  svg.append("line")
-    .attr("x1", x).attr("y1", 0)
-    .attr("x2", x).attr("y2", height)
-    .attr("stroke", "#ddd");
-}
-for (let y = 0; y < height; y += gridSize) {
-  svg.append("line")
-    .attr("x1", 0).attr("y1", y)
-    .attr("x2", width).attr("y2", y)
-    .attr("stroke", "#ddd");
-}
+        const svg = d3.select('#canvas')
+            .attr('width', width)
+            .attr('height', height)
+            .style('background', '#fff');
 
-// --- Covered space area ---
-svg.append("path")
-  .attr("d", "M 100 450 C 200 300, 350 320, 500 350 C 650 380, 750 300, 820 330 L 820 400 C 720 350, 600 400, 500 420 C 350 450, 200 440, 100 480 Z")
-  .attr("fill", "rgba(173, 216, 230, 0.4)")  // light blue
-  .attr("stroke", "none");
+        // Draw grid
+        const grid = svg.append('g').attr('class', 'grid');
 
-// Label
-svg.append("text")
-  .attr("x", 350).attr("y", 380)
-  .text("covered space")
-  .attr("fill", "#3b70b2")
-  .attr("font-size", "18px")
-  .attr("font-family", "sans-serif")
-  .attr("transform", "rotate(-15 350 380)");
+        // Vertical lines
+        for (let x = 0; x <= width; x += gridSize) {
+            grid.append('line')
+                .attr('x1', x)
+                .attr('y1', 0)
+                .attr('x2', x)
+                .attr('y2', height)
+                .attr('stroke', '#ddd')
+                .attr('stroke-width', 1);
+        }
 
-svg.append("text")
-  .attr("x", 350).attr("y", 410)
-  .text("no coverage")
-  .attr("fill", "#3b70b2")
-  .attr("font-size", "18px")
-  .attr("font-family", "sans-serif")
-  .attr("transform", "rotate(-15 350 410)");
+        // Horizontal lines
+        for (let y = 0; y <= height; y += gridSize) {
+            grid.append('line')
+                .attr('x1', 0)
+                .attr('y1', y)
+                .attr('x2', width)
+                .attr('y2', y)
+                .attr('stroke', '#ddd')
+                .attr('stroke-width', 1);
+        }
 
-// --- Arrowhead marker ---
-svg.append("defs").append("marker")
-  .attr("id", "arrow").attr("viewBox", "0 0 10 10")
-  .attr("refX", 5).attr("refY", 5)
-  .attr("markerWidth", 6).attr("markerHeight", 6)
-  .attr("orient", "auto-start-reverse")
-  .append("path")
-  .attr("d", "M 0 0 L 10 5 L 0 10 z")
-  .attr("fill", "#222");
+        // Initial corner positions
+        const corners = [
+            { x: 300, y: 320, id: 0, label: 'e^α₂' }, // bottom-left
+            { x: 490, y: 85, id: 1, label: 'e^β₂' },  // top-left
+            { x: 790, y: 85, id: 2, label: 'e^β₁' },  // top-right
+            { x: 600, y: 320, id: 3, label: 'e^α₁' }  // bottom-right
+        ];
 
-// --- Main arrow path ---
-svg.append("path")
-  .attr("d", "M 120 470 C 200 350, 350 330, 500 360 C 650 390, 720 330, 810 340")
-  .attr("fill", "none")
-  .attr("stroke", "#222")
-  .attr("stroke-width", 3)
-  .attr("marker-end", "url(#arrow)")
-  .attr("marker-mid", "url(#arrow)");
+        // Create group for shape
+        const shapeGroup = svg.append('g').attr('class', 'shape-group');
+        const fillGroup = svg.append('g').attr('class', 'fill-group').style('opacity', '0');
 
-// --- Random start angled path ---
-svg.append("path")
-  .attr("d", "M 100 200 L 170 100")
-  .attr("stroke", "#000")
-  .attr("stroke-width", 3)
-  .attr("marker-end", "url(#arrow)");
+        // Function to update the quadrilateral
+        function updateShape() {
+            // Remove existing polygon and diagonals
+            shapeGroup.selectAll('.polygon').remove();
+            shapeGroup.selectAll('.diagonal').remove();
+            fillGroup.selectAll('.polygon-fill').remove();
 
-svg.append("text")
-  .attr("x", 80).attr("y", 180)
-  .text("random start")
-  .attr("font-size", "18px")
-  .attr("font-family", "sans-serif");
+            // Draw filled polygon (for blinking)
+            const points = corners.map(c => [c.x, c.y]).join(' ');
+            fillGroup.append('polygon')
+                .attr('class', 'polygon-fill')
+                .attr('points', points)
+                .attr('fill', '#3498db')
+                .attr('fill-opacity', '0.5')
+                .attr('stroke', 'none');
 
-// --- Squares for x and x' ---
-svg.append("rect")
-  .attr("x", 420).attr("y", 310)
-  .attr("width", 25).attr("height", 25)
-  .attr("fill", "#4a2ca3"); // purple
+            // Draw polygon outline
+            shapeGroup.append('polygon')
+                .attr('class', 'polygon')
+                .attr('points', points)
+                .attr('fill', 'none')
+                .attr('stroke', '#2c3e50')
+                .attr('stroke-width', 2);
 
-svg.append("text")
-  .attr("x", 430).attr("y", 305)
-  .text("x")
-  .attr("font-size", "20px")
-  .attr("font-family", "sans-serif")
-  .attr("fill", "#000");
+            // Draw diagonals (dashed lines)
+            shapeGroup.append('line')
+                .attr('class', 'diagonal')
+                .attr('x1', corners[0].x)
+                .attr('y1', corners[0].y)
+                .attr('x2', corners[2].x)
+                .attr('y2', corners[2].y)
+                .attr('stroke', '#7f8c8d')
+                .attr('stroke-width', 2)
+                .attr('stroke-dasharray', '5,5');
 
-svg.append("rect")
-  .attr("x", 780).attr("y", 300)
-  .attr("width", 25).attr("height", 25)
-  .attr("fill", "#b72b1a"); // red
+            shapeGroup.append('line')
+                .attr('class', 'diagonal')
+                .attr('x1', corners[1].x)
+                .attr('y1', corners[1].y)
+                .attr('x2', corners[3].x)
+                .attr('y2', corners[3].y)
+                .attr('stroke', '#7f8c8d')
+                .attr('stroke-width', 2)
+                .attr('stroke-dasharray', '5,5');
+        }
 
-svg.append("text")
-  .attr("x", 790).attr("y", 295)
-  .text("x'")
-  .attr("font-size", "20px")
-  .attr("font-family", "sans-serif")
-  .attr("fill", "#000");
-</script>
+        // Function to update labels
+        function updateLabels() {
+            svg.selectAll('.corner-label').remove();
+            
+            const labelOffsets = [
+                { dx: -25, dy: 20 },  // bottom-left
+                { dx: -25, dy: -10 }, // top-left
+                { dx: 15, dy: -10 },  // top-right
+                { dx: 15, dy: 20 }    // bottom-right
+            ];
+
+            svg.selectAll('.corner-label')
+                .data(corners)
+                .join('text')
+                .attr('class', 'corner-label')
+                .attr('x', (d, i) => d.x + labelOffsets[i].dx)
+                .attr('y', (d, i) => d.y + labelOffsets[i].dy)
+                .attr('fill', '#2c3e50')
+                .attr('font-size', '18px')
+                .attr('font-style', 'italic')
+                .text(d => d.label);
+        }
+
+        // Initial shape drawing
+        updateShape();
+        updateLabels();
+
+        // Animation timer
+        let blinkTimeout = null;
+
+        // Function to blink the shape
+        function blinkShape() {
+            let blinkCount = 0;
+            const totalBlinks = 3;
+            const blinkInterval = 300; // ms
+
+            const interval = setInterval(() => {
+                if (blinkCount >= totalBlinks * 2) {
+                    clearInterval(interval);
+                    fillGroup.style('opacity', '0');
+                    return;
+                }
+
+                // Toggle between 1 and 0 opacity for the filled area
+                const opacity = blinkCount % 2 === 0 ? '1' : '0';
+                fillGroup.style('opacity', opacity);
+                blinkCount++;
+            }, blinkInterval);
+        }
+
+        // Create draggable corner handles
+        const handles = svg.append('g').attr('class', 'handles');
+
+        const drag = d3.drag()
+            .on('drag', function(event, d) {
+                d.x = event.x;
+                d.y = event.y;
+                d3.select(this)
+                    .attr('cx', d.x)
+                    .attr('cy', d.y);
+                updateShape();
+                updateLabels();
+
+                // Clear existing timeout
+                if (blinkTimeout) {
+                    clearTimeout(blinkTimeout);
+                }
+            })
+            .on('end', function() {
+                // Set new timeout for blink animation
+                if (blinkTimeout) {
+                    clearTimeout(blinkTimeout);
+                }
+                blinkTimeout = setTimeout(() => {
+                    blinkShape();
+                }, 2000);
+            });
+
+        handles.selectAll('circle')
+            .data(corners)
+            .join('circle')
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y)
+            .attr('r', 8)
+            .attr('fill', '#34495e')
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 2)
+            .style('cursor', 'move')
+            .call(drag);
+    </script>
+</body>
+</html></template>
+
+  <!-- (2) SVG Morphing -->
+  <template id="doc2"><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3.js SVG Morphing Animation</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            text-align: center;
+        }
+        
+        h1 {
+            margin-bottom: 2rem;
+            color: #111827;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            color: #6b7280;
+        }
+        
+        .svg-wrapper {
+            display: inline-block;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        svg {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>Notes:</p>
+        <p>1. I first drew the 2 images and retraced it on adobe illustrator. I then exported it as an SVG and told ChatGpt to "create this SVG into D3.js in HTML please. and animate them from the first SVG to the next SVG when hovered over"</p>
+        <p>2. I then retold the prompt to say "I want to copy paste this HTML later, are you able to make the code independent and standalone and not need an external SVG File with the HTML"</p>
+        <p>3. It took many many tries and Chatgpt kept messing up the lines and making it inconsistent, but I tried asking it to treat it like a graph, and it sort of worked.</p>
+        <p>4. With enough tries and redoing and understanding the code, I make sure to plot them properly as an SVG path, and asked chatgpt to help</p>
+        <b>DO NOT HOVER ME, OR ELSE I GET ZAPPED!!</b>
+        <div class="svg-wrapper">
+            <svg id="morphing-svg" width="300" height="500" viewBox="0 0 445 605"></svg>
+        </div>
+    </div>
+
+    <script>
+        // The two SVG paths from your Figma imports
+        const path1 = "M105.009 23H185.009M105.009 23L225.509 0.5H340.009M105.009 23L108.509 150.5L185.009 195M185.009 23L340.009 0.5M185.009 23V195M340.009 0.5V157L185.009 195M247.509 123L285.009 115M217.509 91L244.509 87.5M285.009 82L304.009 78.5M198.509 191.69L190.509 228M190.509 335V228M190.509 335L227.009 398L198.509 468.5M190.509 335L262.009 383L255.009 453M190.509 228C190.509 228 129.535 266.173 143.509 299.5C155.458 327.995 217.509 327.5 217.509 327.5M190.509 228C190.509 228 214.042 281.956 244.509 287.5C265.229 291.271 296.009 271.5 296.009 271.5M217.509 327.5C217.509 327.5 228.388 307.471 239.509 309C251.22 310.61 258.515 323.711 255.009 335C251.891 345.042 242.24 351.431 232.009 349C222.156 346.659 217.509 327.5 217.509 327.5ZM296.009 271.5C296.009 271.5 309.831 240.106 318.509 249C319.849 250.373 321.356 253.004 321.356 253.004M296.009 271.5C296.009 271.5 298.34 283.418 304.009 287.5C314.925 295.359 334.461 284.95 334.509 271.5C334.541 262.637 321.356 253.004 321.356 253.004M321.356 253.004L304.009 327.5C304.009 327.5 339.06 288.346 353.509 265.5C367.959 242.654 383.009 211.5 383.009 211.5C383.009 211.5 401.074 208.87 412.009 203.5C422.944 198.13 444.009 179 444.009 179C444.009 179 419.473 216.197 394.009 224C363.009 233.5 321.356 253.004 321.356 253.004ZM0.509167 398L66.5092 441M0.509167 398L304.009 299.5L359.009 327.5M0.509167 398L4.00917 538L71.0092 584M66.5092 441L359.009 327.5M66.5092 441L71.0092 584M359.009 327.5V453L71.0092 584M198.509 468.5C198.509 468.5 195.556 478.696 197.015 485C199.535 495.895 208.807 512.024 217.509 505C224.665 499.224 220.544 489.5 216.009 481.5C211.811 474.094 198.509 468.5 198.509 468.5ZM255.009 453C255.009 453 247.691 461.778 247.509 468.5C247.189 480.37 259.219 496.719 269.009 490C277.22 484.365 273.969 473.135 269.009 464.5C265.485 458.365 255.009 453 255.009 453ZM269.009 257.5L247.509 321.5C247.509 321.5 241.804 328.589 238.009 325.5C234.829 322.912 236.509 317 236.509 317L255.009 253.004M269.009 257.5V246M269.009 257.5C269.009 257.5 263.743 259.878 261.009 259C258.275 258.122 255.009 253.004 255.009 253.004M255.009 253.004L264.509 244.858M264.509 244.858L269.009 241V246M264.509 244.858L269.009 246M208.509 38V171.5L323.509 144V23L208.509 38Z";
+        
+        const path2 = "M105.009 43.0465H185.009M105.009 43.0465L225.509 20.5465H340.009M105.009 43.0465L108.509 170.546L185.009 215.046M105.009 43.0465L99.5092 28.0465L85.5092 37.5465L75.5092 11.0465M185.009 43.0465L340.009 20.5465M185.009 43.0465V215.046M340.009 20.5465V177.046M185.009 215.046L340.009 177.046M340.009 177.046L350.509 188.046L355.509 174.046L371.009 191.546M198.509 211.737L161.009 257.046M190.509 355.046L161.009 257.046M190.509 355.046L161.009 434.046L198.509 488.546M190.509 355.046L275.509 399.046L300.009 445.546M161.009 257.046C161.009 257.046 174.631 301.179 143.509 319.546C121.391 332.6 85.5092 350.546 85.5092 350.546M161.009 257.046C161.009 257.046 214.042 302.002 244.509 307.546C265.229 311.317 296.009 291.546 296.009 291.546M70.0092 324.546C81.72 326.156 89.0146 339.257 85.5092 350.546M70.0092 324.546C65.9322 323.986 62.1565 326.054 59.0092 328.899M70.0092 324.546C70.0092 324.546 70.85 331.608 67.0092 332.546C63.5581 333.389 59.0092 328.899 59.0092 328.899M70.0092 324.546L60.5092 276.546M85.5092 350.546C82.3909 360.589 72.7396 366.977 62.5092 364.546C52.6561 362.206 50.0092 341.046 50.0092 341.046C50.0092 341.046 53.5714 333.813 59.0092 328.899M296.009 291.546C296.009 291.546 298.34 303.465 304.009 307.546C314.925 315.406 333.461 301.497 333.509 288.046C333.509 288.046 327.159 268.695 315.509 268.546C303.734 268.396 296.009 291.546 296.009 291.546ZM0.509167 418.046L66.5092 461.046M0.509167 418.046L304.009 319.546L359.009 347.546M0.509167 418.046L4.00917 558.046L71.0092 604.046M66.5092 461.046L359.009 347.546M66.5092 461.046L71.0092 604.046M359.009 347.546V473.046L71.0092 604.046M198.509 488.546C198.509 488.546 195.556 498.743 197.015 505.046C199.535 515.942 208.807 532.071 217.509 525.046C224.665 519.27 220.544 509.547 216.009 501.546C211.811 494.14 198.509 488.546 198.509 488.546ZM300.009 445.546C300.009 445.546 292.691 454.324 292.509 461.046C292.189 472.916 304.219 489.265 314.009 482.546C322.2 476.912 318.969 465.682 314.009 457.046C310.485 450.911 300.009 445.546 300.009 445.546ZM99.5092 199.046V211.737H81.0092L85.5092 227.546M255.009 43.0465L248.009 28.0465L285.009 37.5465L288.509 0.0464647M59.0092 328.899L47.5092 278.046M60.5092 276.546C60.5092 276.546 59.2775 281.27 56.0092 282.046C52.3206 282.923 47.5092 278.046 47.5092 278.046M60.5092 276.546L53.5092 270.88M47.5092 278.046L48.7592 273.046M48.7592 273.046L50.0092 268.046L53.5092 270.88M48.7592 273.046L53.5092 270.88M224.393 97.0465C222.608 100.139 221.358 103.496 221.009 106.046C220.513 109.675 222.494 112.678 225.509 114.653M224.393 97.0465C226.888 92.7222 230.428 88.9141 234.009 88.5465C237.65 88.1727 241.298 91.6011 244.086 95.5465M224.393 97.0465L244.837 113.046M244.837 113.046C247.938 110.249 249.639 106.383 248.009 102.546C247.144 100.509 245.772 97.933 244.086 95.5465M244.837 113.046C242.561 115.099 239.532 116.577 236.509 117.046C232.793 117.624 228.606 116.68 225.509 114.653M244.086 95.5465L225.509 114.653M290.514 88.5465C289.311 91.602 288.583 94.9471 288.509 97.0465C288.409 99.8799 289.846 102.36 292.009 104.01M290.514 88.5465C291.845 85.1628 293.758 82.1344 296.009 81.5465C298.85 80.8043 301.743 83.6406 304.009 87.0058M290.514 88.5465L305.72 102.546M305.72 102.546C304.154 104.384 301.945 105.719 299.509 106.046C296.818 106.408 294.081 105.59 292.009 104.01M305.72 102.546C307.848 100.051 308.79 96.6287 307.509 93.5465C306.757 91.7359 305.523 89.2529 304.009 87.0058M304.009 87.0058L292.009 104.01M208.509 58.0465V191.546L323.509 164.046V43.0465L208.509 58.0465ZM247.509 143.046C247.241 153.436 261.606 157.699 271.509 154.546C280.335 151.737 288.723 143.531 285.009 135.046C281.664 127.405 272.694 127.438 264.509 129.046C256.07 130.705 247.731 134.449 247.509 143.046ZM311.009 282.046L330.509 199.046C330.509 199.046 350.844 218.919 360.509 226.046C370.175 233.174 383.509 232.046 383.509 232.046L359.009 316.546C359.009 316.546 335.086 286.066 328.009 283.546C313.802 278.488 311.009 282.046 311.009 282.046Z";
+
+        // Select the SVG element
+        const svg = d3.select('#morphing-svg');
+
+        // Create the path element
+        const path = svg.append('path')
+            .attr('d', path1)
+            .attr('stroke', 'black')
+            .attr('fill', 'none')
+            .attr('stroke-width', 1);
+
+        // Hover handlers
+        svg.on('mouseenter', function() {
+            path.attr('d', path2);
+        });
+
+        svg.on('mouseleave', function() {
+            path.attr('d', path1);
+        });
+    </script>
+</body>
+</html></template>
+
+  <!-- (3) Interactive Venn -->
+  <template id="doc3"><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Venn Diagram</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f9fafb;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .svg-container {
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        button {
+            padding: 1.5rem 2rem;
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: white;
+            background-color: #18181b;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #27272a;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .absolute-button {
+            position: absolute;
+            top: 350px;
+        }
+
+        .delete-button {
+            left: 50px;
+        }
+
+        .rewrite-button {
+            right: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>Notes:</p>
+        <p>1. I redid the venn diagram circles in Figma, but I also tries using the D3.js way of making circles by including the variables "const circles" that D3 uses.</p>
+        <p>2. I added the roman numerals manually on figma and tried telling chatgpt to put placeholders on these intersections and areas of the circles.</p>
+        <p>3. The prompt used to make the interaction was "make it so that when you click on "replace", it replaces the colours of the venn diagram to different colours. and when you click on "rewrite", it changes the roman numerals on the venn diagram and randomizes it. and when you click on "delete", it deletes all of the venn diagram and roman numerals and replaces it with a big exclamation mark!"</p>
+        <p>4. A lot of reiterations of the prompt was done to get things right, such as the buttons being placed at the top left of the screen, and telling the chatbot to not keep changing my code.</p>
+        <div class="card">
+            <div class="button-container">
+                <button id="replaceBtn">Replace</button>
+            </div>
+            <div class="svg-container">
+                <svg id="venn-diagram"></svg>
+                <button id="deleteBtn" class="absolute-button delete-button">Delete</button>
+                <button id="rewriteBtn" class="absolute-button rewrite-button">Rewrite</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentColorIndex = 0;
+        let numerals = ['I', 'II', 'III', 'IV', 'V', 'VII', 'II'];
+        let isDeleted = false;
+
+        const colorSets = [
+            ['#FFB6C1', '#DDA0DD', '#F0E68C'], // pink, violet, yellow
+            ['#98D8C8', '#F6B93B', '#E55039'], // teal, orange, red
+            ['#A8E6CF', '#FFD3B6', '#FFAAA5'], // mint, peach, coral
+            ['#B4A7D6', '#FDCAE1', '#FFE5B4'], // lavender, pink, cream
+            ['#AED9E0', '#FAE3D9', '#D4A5A5'], // sky, beige, mauve
+        ];
+
+        const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+        // Draw function
+        function drawVennDiagram() {
+            const svg = d3.select('#venn-diagram');
+            svg.selectAll('*').remove();
+
+            const width = 800;
+            const height = 600;
+
+            svg.attr('width', width).attr('height', height);
+
+            if (isDeleted) {
+                // Draw big exclamation mark
+                svg.append('text')
+                    .attr('x', width / 2)
+                    .attr('y', height / 2 - 50)
+                    .attr('text-anchor', 'middle')
+                    .attr('font-size', '200px')
+                    .attr('fill', '#333')
+                    .text('!');
+                return;
+            }
+
+            const g = svg.append('g');
+
+            // Circle positions and radius
+            const radius = 150;
+            const colors = colorSets[currentColorIndex];
+            const circles = [
+                { cx: 400, cy: 150, r: radius, fill: colors[0] }, // top
+                { cx: 280, cy: 350, r: radius, fill: colors[1] }, // bottom left
+                { cx: 520, cy: 350, r: radius, fill: colors[2] }, // bottom right
+            ];
+
+            // Draw circles
+            circles.forEach(circle => {
+                g.append('circle')
+                    .attr('cx', circle.cx)
+                    .attr('cy', circle.cy)
+                    .attr('r', circle.r)
+                    .attr('fill', circle.fill)
+                    .attr('opacity', 0.6);
+            });
+
+            // Text positions for each region
+            const textPositions = [
+                { x: 230, y: 440, text: numerals[0] }, // left only
+                { x: 400, y: 130, text: numerals[1] }, // top only
+                { x: 570, y: 440, text: numerals[2] }, // right only
+                { x: 320, y: 280, text: numerals[3] }, // left-top
+                { x: 480, y: 280, text: numerals[4] }, // right-top
+                { x: 400, y: 340, text: numerals[5] }, // center (all three)
+                { x: 400, y: 430, text: numerals[6] }, // bottom (left-right)
+            ];
+
+            // Draw text
+            textPositions.forEach(pos => {
+                g.append('text')
+                    .attr('x', pos.x)
+                    .attr('y', pos.y)
+                    .attr('text-anchor', 'middle')
+                    .attr('font-size', '32px')
+                    .attr('fill', '#000')
+                    .text(pos.text);
+            });
+        }
+
+        // Event handlers
+        document.getElementById('replaceBtn').addEventListener('click', function() {
+            currentColorIndex = (currentColorIndex + 1) % colorSets.length;
+            isDeleted = false;
+            drawVennDiagram();
+        });
+
+        document.getElementById('rewriteBtn').addEventListener('click', function() {
+            numerals = Array(7).fill(null).map(() => 
+                romanNumerals[Math.floor(Math.random() * romanNumerals.length)]
+            );
+            isDeleted = false;
+            drawVennDiagram();
+        });
+
+        document.getElementById('deleteBtn').addEventListener('click', function() {
+            isDeleted = true;
+            drawVennDiagram();
+        });
+
+        // Initial draw
+        drawVennDiagram();
+    </script>
+</body>
+</html></template>
+
+  <!-- (4) Grid Visualization with Path Animation -->
+  <template id="doc4"><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Visualization with Path Animation</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .container {
+            position: relative;
+            padding: 32px;
+        }
+
+        svg {
+            border: 2px solid #9ca3af;
+        }
+
+        .random-start-button {
+            position: absolute;
+            padding: 8px 16px;
+            background-color: #dcfce7;
+            color: #4b5563;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .random-start-button:hover {
+            background-color: #bbf7d0;
+            color: #1f2937;
+        }
+
+        .labels {
+            position: absolute;
+            color: #4b5563;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        .labels div {
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <svg id="grid"></svg>
+        <button class="random-start-button" id="randomStartBtn">random start</button>
+        <div class="labels" id="labels">
+            <div>covered space</div>
+            <div>no coverage</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const gridSize = 15;
+        const cellSize = 45;
+        let isAnimating = false;
+
+        // Path positions
+        const pathPositions = [
+            { x: 3, y: 4 },
+            { x: 2.5, y: 4.5 },
+            { x: 2, y: 5 },
+            { x: 1.5, y: 5.5 },
+            { x: 1.2, y: 6 },
+            { x: 1, y: 6.5 },
+            { x: 0.9, y: 7 },
+            { x: 0.9, y: 7.5 },
+            { x: 1, y: 8 },
+            { x: 1.2, y: 8.5 },
+            { x: 1.5, y: 9 },
+            { x: 2, y: 9.5 },
+            { x: 2.5, y: 9.8 },
+            { x: 3, y: 10 },
+            { x: 3.5, y: 10.2 },
+            { x: 4, y: 10.4 },
+            { x: 4.5, y: 10.5 },
+            { x: 5, y: 10.6 },
+            { x: 5.5, y: 10.6 },
+            { x: 6, y: 10.5 },
+            { x: 6.5, y: 10.3 },
+            { x: 7, y: 10 },
+            { x: 7.5, y: 9.6 },
+            { x: 8, y: 9.2 },
+            { x: 8.5, y: 8.8 },
+            { x: 9, y: 8.5 },
+            { x: 9.5, y: 8.2 },
+            { x: 10, y: 8 },
+            { x: 10.5, y: 7.8 },
+            { x: 11, y: 7.4 },
+            { x: 11.5, y: 7 },
+        ];
+
+        // Calculate arrows with rotation
+        const arrows = pathPositions.map((pos, index) => {
+            let rotation = 0;
+            
+            if (index < pathPositions.length - 1) {
+                const next = pathPositions[index + 1];
+                const dx = next.x - pos.x;
+                const dy = next.y - pos.y;
+                rotation = (Math.atan2(dy, dx) * 180 / Math.PI);
+            } else {
+                if (index > 0) {
+                    const prev = pathPositions[index - 1];
+                    const dx = pos.x - prev.x;
+                    const dy = pos.y - prev.y;
+                    rotation = (Math.atan2(dy, dx) * 180 / Math.PI);
+                }
+            }
+            
+            return {
+                x: pos.x,
+                y: pos.y,
+                rotation,
+                delay: index * 0.05
+            };
+        });
+
+        const totalAnimationDuration = arrows.length * 0.05;
+
+        // Create SVG
+        const svg = d3.select('#grid')
+            .attr('width', gridSize * cellSize)
+            .attr('height', gridSize * cellSize);
+
+        // Background
+        svg.append('rect')
+            .attr('width', gridSize * cellSize)
+            .attr('height', gridSize * cellSize)
+            .attr('fill', 'white');
+
+        // Draw grid lines
+        const gridLines = svg.append('g').attr('class', 'grid-lines');
+
+        // Vertical lines
+        for (let i = 0; i <= gridSize; i++) {
+            gridLines.append('line')
+                .attr('x1', i * cellSize)
+                .attr('y1', 0)
+                .attr('x2', i * cellSize)
+                .attr('y2', gridSize * cellSize)
+                .attr('stroke', '#d1d5db')
+                .attr('stroke-width', 1);
+        }
+
+        // Horizontal lines
+        for (let i = 0; i <= gridSize; i++) {
+            gridLines.append('line')
+                .attr('x1', 0)
+                .attr('y1', i * cellSize)
+                .attr('x2', gridSize * cellSize)
+                .attr('y2', i * cellSize)
+                .attr('stroke', '#d1d5db')
+                .attr('stroke-width', 1);
+        }
+
+        // X marker (blue square)
+        const xMarker = svg.append('g')
+            .attr('transform', `translate(${cellSize * 5.5}, ${cellSize * 6.5})`);
+
+        xMarker.append('rect')
+            .attr('x', -8)
+            .attr('y', -8)
+            .attr('width', 16)
+            .attr('height', 16)
+            .attr('fill', '#4169E1');
+
+        xMarker.append('text')
+            .attr('x', -25)
+            .attr('y', -15)
+            .attr('fill', '#654321')
+            .attr('font-style', 'italic')
+            .attr('font-size', '24')
+            .text('x');
+
+        // X' marker (red square)
+        const xPrimeMarker = svg.append('g')
+            .attr('transform', `translate(${cellSize * 11.5}, ${cellSize * 7})`);
+
+        xPrimeMarker.append('rect')
+            .attr('x', -10)
+            .attr('y', -10)
+            .attr('width', 20)
+            .attr('height', 20)
+            .attr('fill', '#DC143C');
+
+        xPrimeMarker.append('text')
+            .attr('x', -30)
+            .attr('y', -18)
+            .attr('fill', '#654321')
+            .attr('font-style', 'italic')
+            .attr('font-size', '24')
+            .text("x'");
+
+        // Create path for blue highlight
+        const pathData = pathPositions.map((pos, index) => {
+            const x = pos.x * cellSize;
+            const y = pos.y * cellSize;
+            return index === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+        }).join(' ');
+
+        const bluePath = svg.append('path')
+            .attr('d', pathData)
+            .attr('fill', 'none')
+            .attr('stroke', '#4169E1')
+            .attr('stroke-width', 35)
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-linejoin', 'round')
+            .attr('opacity', 0.4);
+
+        const pathLength = bluePath.node().getTotalLength();
+        
+        bluePath
+            .attr('stroke-dasharray', pathLength)
+            .attr('stroke-dashoffset', pathLength);
+
+        // Create arrows
+        const arrowGroup = svg.append('g').attr('class', 'arrows');
+
+        arrows.forEach((arrow, index) => {
+            const g = arrowGroup.append('g')
+                .attr('transform', `translate(${arrow.x * cellSize}, ${arrow.y * cellSize})`);
+
+            const arrowPath = g.append('g')
+                .attr('transform', `rotate(${arrow.rotation})`)
+                .append('path')
+                .attr('d', 'M -15,0 L 5,0 M 5,0 L -2,-5 M 5,0 L -2,5')
+                .attr('stroke', '#654321')
+                .attr('stroke-width', 2)
+                .attr('fill', 'none')
+                .attr('stroke-linecap', 'round')
+                .attr('stroke-linejoin', 'round')
+                .style('opacity', 0);
+
+            arrow.element = arrowPath;
+        });
+
+        // Position button
+        const button = d3.select('#randomStartBtn')
+            .style('left', `${cellSize * 1.5}px`)
+            .style('top', `${cellSize * 3}px`);
+
+        // Position labels
+        d3.select('#labels')
+            .style('left', `${cellSize * 5.5}px`)
+            .style('top', `${cellSize * 8.5}px`)
+            .style('transform', 'rotate(-45deg)')
+            .style('transform-origin', 'center');
+
+        // Animation function
+        function animate() {
+            isAnimating = !isAnimating;
+
+            if (isAnimating) {
+                // Animate blue path
+                bluePath
+                    .transition()
+                    .duration(totalAnimationDuration * 1000)
+                    .ease(d3.easeLinear)
+                    .attr('stroke-dashoffset', 0);
+
+                // Animate arrows
+                arrows.forEach(arrow => {
+                    arrow.element
+                        .transition()
+                        .delay(arrow.delay * 1000)
+                        .duration(300)
+                        .style('opacity', 1);
+                });
+            } else {
+                // Reset blue path
+                bluePath
+                    .transition()
+                    .duration(300)
+                    .attr('stroke-dashoffset', pathLength);
+
+                // Reset arrows
+                arrows.forEach(arrow => {
+                    arrow.element
+                        .transition()
+                        .duration(0)
+                        .style('opacity', 0);
+                });
+            }
+        }
+
+        // Button click handler
+        button.on('click', animate);
+    </script>
+</body>
+</html></template>
+
+  <!-- (5) Model Frequency Over Time -->
+  <template id="doc5"><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Frequency Over Time - D3.js</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 1400px;
+            width: 100%;
+        }
+        
+        h2 {
+            margin: 0 0 16px 0;
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            gap: 24px;
+        }
+        
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 8px 0;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            user-select: none;
+        }
+        
+        .legend-item.disabled {
+            opacity: 0.4;
+        }
+        
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+        }
+        
+        .legend-label {
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .chart-container {
+            flex: 1;
+        }
+        
+        .area {
+            transition: fill 0.3s ease, stroke 0.3s ease, opacity 0.3s ease;
+        }
+        
+        .grid line {
+            stroke: #ddd;
+            stroke-dasharray: 3 3;
+        }
+        
+        .grid path {
+            stroke-width: 0;
+        }
+        
+        .axis path,
+        .axis line {
+            stroke: #666;
+        }
+        
+        .axis text {
+            fill: #666;
+            font-size: 12px;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .tooltip.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Model Frequency Over Time</h2>
+        <div class="chart-wrapper">
+            <div class="legend" id="legend"></div>
+            <div class="chart-container" id="chart"></div>
+        </div>
+    </div>
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Generate data
+        function generateData() {
+            const data = [];
+            for (let year = 1980; year <= 2020; year++) {
+                let setModel = 0;
+                let sequenceModel = 0;
+                let vectorModel = 0;
+                let endToEnd = 0;
+
+                // Set model: small peaks scattered throughout
+                if (year >= 1983 && year <= 1988) {
+                    setModel = Math.random() * 0.3 + 0.2;
+                } else if (year >= 2000 && year <= 2008) {
+                    setModel = Math.random() * 0.4 + 0.2;
+                }
+
+                // Sequence model: small consistent presence
+                if (year >= 1988 && year <= 2015) {
+                    sequenceModel = Math.random() * 0.4 + 0.15;
+                }
+
+                // Vector model: moderate presence in 2000s-2010s
+                if (year >= 1998 && year <= 2018) {
+                    vectorModel = Math.random() * 0.6 + 0.3;
+                }
+
+                // End-to-end: massive spike from 2012 onwards
+                if (year >= 2012) {
+                    if (year <= 2014) {
+                        endToEnd = Math.random() * 1.5 + 0.5;
+                    } else if (year <= 2017) {
+                        endToEnd = Math.random() * 2.5 + 2;
+                    } else if (year <= 2019) {
+                        endToEnd = Math.random() * 3 + 4;
+                    } else {
+                        endToEnd = Math.random() * 2 + 8;
+                    }
+                }
+
+                data.push({
+                    year,
+                    setModel,
+                    sequenceModel,
+                    vectorModel,
+                    endToEnd
+                });
+            }
+            return data;
+        }
+
+        const data = generateData();
+
+        // Configuration
+        const areas = [
+            { key: 'setModel', name: 'Set model', normalColor: '#8b9456', hotColor: '#9eff00', normalStroke: '#7a8450' },
+            { key: 'sequenceModel', name: 'Sequence model', normalColor: '#d4c19a', hotColor: '#ffcc00', normalStroke: '#b8a67d' },
+            { key: 'vectorModel', name: 'Vector model', normalColor: '#a99bc4', hotColor: '#b94dff', normalStroke: '#8b7ba8' },
+            { key: 'endToEnd', name: 'End-to-end', normalColor: '#d89bbf', hotColor: '#ff1493', normalStroke: '#c27ba0' }
+        ];
+
+        // State
+        let hoveredArea = null;
+        let visibleAreas = new Set(areas.map(a => a.key));
+
+        // Dimensions
+        const margin = { top: 10, right: 30, bottom: 30, left: 60 };
+        const width = 1100 - margin.left - margin.right;
+        const height = 400 - margin.top - margin.bottom;
+
+        // Create SVG
+        const svg = d3.select('#chart')
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        // Scales
+        const x = d3.scaleLinear()
+            .domain([1980, 2020])
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([0, 10])
+            .range([height, 0]);
+
+        // Grid
+        svg.append('g')
+            .attr('class', 'grid')
+            .call(d3.axisLeft(y)
+                .tickSize(-width)
+                .tickFormat('')
+                .ticks(5));
+
+        // Axes
+        const xAxis = svg.append('g')
+            .attr('class', 'axis')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x)
+                .tickValues([1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015, 2020])
+                .tickFormat(d3.format('d')));
+
+        const yAxis = svg.append('g')
+            .attr('class', 'axis')
+            .call(d3.axisLeft(y)
+                .tickValues([0, 2, 4, 6, 8, 10]));
+
+        // Y-axis label
+        svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', -40)
+            .attr('x', -height / 2)
+            .attr('text-anchor', 'middle')
+            .style('font-size', '12px')
+            .style('fill', '#666')
+            .text('Frequency');
+
+        // Area generator
+        const area = d3.area()
+            .x(d => x(d.year))
+            .y0(height)
+            .y1(d => y(d.value))
+            .curve(d3.curveMonotoneX);
+
+        // Create areas
+        const areaGroups = areas.map(areaConfig => {
+            const areaData = data.map(d => ({
+                year: d.year,
+                value: d[areaConfig.key]
+            }));
+
+            const path = svg.append('path')
+                .datum(areaData)
+                .attr('class', `area area-${areaConfig.key}`)
+                .attr('d', area)
+                .style('fill', areaConfig.normalColor)
+                .style('stroke', areaConfig.normalStroke)
+                .style('stroke-width', 1)
+                .style('opacity', 0.8)
+                .on('mouseenter', () => {
+                    hoveredArea = areaConfig.key;
+                    updateAreas();
+                })
+                .on('mouseleave', () => {
+                    hoveredArea = null;
+                    updateAreas();
+                });
+
+            return { config: areaConfig, path, data: areaData };
+        });
+
+        // Tooltip
+        const tooltip = d3.select('#tooltip');
+
+        // Create legend
+        const legend = d3.select('#legend');
+        areas.forEach(areaConfig => {
+            const item = legend.append('div')
+                .attr('class', 'legend-item')
+                .on('click', () => {
+                    // Toggle visibility
+                    if (visibleAreas.has(areaConfig.key)) {
+                        if (visibleAreas.size > 1) {
+                            visibleAreas.delete(areaConfig.key);
+                        }
+                    } else {
+                        visibleAreas.add(areaConfig.key);
+                    }
+                    updateAreas();
+                    updateLegend();
+                })
+                .on('mouseenter', () => {
+                    hoveredArea = areaConfig.key;
+                    updateAreas();
+                })
+                .on('mouseleave', () => {
+                    hoveredArea = null;
+                    updateAreas();
+                });
+
+            item.append('div')
+                .attr('class', 'legend-color')
+                .style('background-color', areaConfig.normalColor);
+
+            item.append('span')
+                .attr('class', 'legend-label')
+                .text(areaConfig.name);
+        });
+
+        // Update functions
+        function updateAreas() {
+            areaGroups.forEach(({ config, path }) => {
+                const isVisible = visibleAreas.has(config.key);
+                const isHovered = hoveredArea === config.key;
+                
+                let opacity = 0.8;
+                if (!isVisible) {
+                    opacity = 0;
+                } else if (hoveredArea !== null) {
+                    opacity = isHovered ? 1 : 0.3;
+                }
+
+                const fill = isHovered ? config.hotColor : config.normalColor;
+                const stroke = isHovered ? config.hotColor : config.normalStroke;
+                const strokeWidth = isHovered ? 2 : 1;
+
+                path
+                    .style('fill', fill)
+                    .style('stroke', stroke)
+                    .style('stroke-width', strokeWidth)
+                    .style('opacity', opacity);
+            });
+        }
+
+        function updateLegend() {
+            d3.selectAll('.legend-item')
+                .each(function(d, i) {
+                    const item = d3.select(this);
+                    const key = areas[i].key;
+                    item.classed('disabled', !visibleAreas.has(key));
+                });
+        }
+
+        // Initial render
+        updateAreas();
+        updateLegend();
+    </script>
+</body>
+</html></template>
+
+  <script>
+    // Create iframes for each template, preserving your snippets exactly.
+    const templates = Array.from(document.querySelectorAll('template'));
+    templates.forEach((t, i) => {
+      const f = document.createElement('iframe');
+      f.loading = 'lazy';
+      if (i !== 3) {
+        // Standard sandbox for charts 1,2,3,5
+        f.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      } else {
+        // Chart 4: loosen sandbox for reliable path animation
+        f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
+      }
+      f.srcdoc = '<!DOCTYPE html>\n' + t.innerHTML;
+      document.body.appendChild(f);
+    });
+  </script>
 </body>
 </html>
