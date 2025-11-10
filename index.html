@@ -977,9 +977,11 @@
 <body>
     <div>
     <p>Notes:</p>
-        <p>1. I uploaded the image onto ChatGPT. To no avail, of course it does not generate how I wanted the graph to look like. So I started from scratch and generated the grid first and plotted the x and red and blue squares. Next I told the chatbot to put a placeholder of the texts and "random start".</p>
-        <p>2. I then asked the chatbot to replicate an arrowed version on the grid i created, and replicate the image I uploaded. I first tried a couple of algorithms such as A-star and Dijkstra but it did not translate well and it was not as fluid as how I wanted it to look. I then added blue highlights around the arrow path and prompted it as "are you abel to add blue highlights around the path of the arrow? Make the width bigger.</p>
-        <p>3. I then added the button of "random start" and added the interaction and layers of "ok. so after clicking on "random start". instead of showing the arrows instantly. I want there to be an animation that loads each arrow one by one. KEEP THE ARROWS WHERE THEY ARE. I just want the loading to be slow."</p>
+        <p>1. I looked at D3.js ways of creating a graph, and used the "const areaGroups" for the graph data to be shown. I then input it through the chatbot to graph it with a y and x axis. I also input the image as a reference</p>
+        <p>2. The next prompt I placed was "are you able to make the legends so that it would not take up all of the space on the left hand side? and make the margins at the bottom a bit larger to give the graph label on the x axis more breathing space for the user to see it" in order to keept tweaking the graph and how I wanted it to look.</p>
+        <p>3. After, i kept tweaking the chart to make the data relevant like telling the chatbot to change the values on the y axis to "make the y axis into 0,2,4,6,8,10"</p>
+        <p>4. For the transition and interaction, I wanted the chatbot to change it so that it highlights better data. "are you able to make the data on the graph so that they overlap each other. so that when you click on the legend to isolate the data, the data does not visually stack on one another". And "are you able to click on the the legend and isolate the only information on the graph as well? so if i click on "end to end" then it would only show the "end to end" data on the graph?".</p>
+        <p>5. lastly I tweaked the colours so that the highlighted colour is a hotter/ neon colour "make it so that when i hover over the graph colour in the chart, you change the colour into a hotter colour."</p>
     </div>
     <div class="container">
         <h2>Model Frequency Over Time</h2>
